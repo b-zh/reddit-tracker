@@ -10,8 +10,8 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 FEED_URL = "https://www.reddit.com/r/watchexchange+watchexchangecanada+watch_swap/new/.rss?sort=new"
 
 # Add terms here to test standalone words (e.g., "seiko", "omega")
-DIRECT_REFS = ["79500", "m79500", "seiko"]
-MODEL_TERMS = ["black bay 36", "bb36", "blackbay 36"]
+DIRECT_REFS = ["79500", "m79500"]
+MODEL_TERMS = ["black bay 36", "bb36", "blackbay 36", "smiley"]
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
