@@ -8,7 +8,7 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 
 SUBREDDITS = ["watchexchange", "watchexchangecanada", "watch_swap"]
 DIRECT_REFS = ["79500", "m79500"]
-MODEL_TERMS = ["black bay 36", "bb36", "blackbay 36"]
+MODEL_TERMS = ["black bay 36", "bb36", "blackbay 36", "seiko"]
 
 HEADERS = {
     # Unique, customized User-Agent avoiding generic keywords
@@ -78,7 +78,7 @@ def test_historical():
 
     for sub in SUBREDDITS:
         print(f"\nChecking r/{sub}...")
-        url = f"https://www.reddit.com/r/{sub}/new.rss"
+        url = f"https://www.reddit.com/r/{sub}/.rss"
         try:
             feed = feedparser.parse(url, request_headers=HEADERS)
             if feed.bozo and not feed.entries:
@@ -125,7 +125,7 @@ def main():
     window_seconds = 900  # 15 minutes
 
     for sub in SUBREDDITS:
-        url = f"https://www.reddit.com/r/{sub}/new.rss"
+        url = f"https://www.reddit.com/r/{sub}/.rss"
         try:
             feed = feedparser.parse(url, request_headers=HEADERS)
             if feed.bozo and not feed.entries:
