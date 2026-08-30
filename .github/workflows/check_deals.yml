@@ -2,8 +2,8 @@ name: Check Reddit Deals
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Runs every 10 minutes automatically
-  workflow_dispatch:        # Allows running manually via the GitHub button
+    - cron: '*/10 * * * *'  # Runs every 10 minutes
+  workflow_dispatch:
 
 jobs:
   check-reddit:
@@ -23,9 +23,6 @@ jobs:
 
       - name: Run Tracker Script
         env:
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           python tracker.py
