@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import feedparser
 import requests
 
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
@@ -10,7 +11,8 @@ DIRECT_REFS = ["79500", "m79500"]
 MODEL_TERMS = ["black bay 36", "bb36", "blackbay 36"]
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) WatchDealTracker/1.0"
+    # Unique, customized User-Agent avoiding generic keywords
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 }
 
 
@@ -45,7 +47,7 @@ def notify_discord(title, url, author, body, subreddit):
             "url": url,
             "description": (
                 f"**Subreddit:** r/{subreddit}\n"
-                f"**Author:** u/{author}\n\n"
+                f"**Author:** {author}\n\n"
                 f"{body[:300]}..." if body else "*No post body*"
             ),
             "color": 12079663
@@ -60,50 +62,45 @@ def notify_discord(title, url, author, body, subreddit):
 
 
 def test_discord():
-    """Sends a single mock alert to verify Discord webhook."""
     print("Sending test notification to Discord...")
     notify_discord(
         title="[TEST] Tudor Black Bay 36 79500 Black Dial on Bracelet",
         url="https://reddit.com/r/watchexchange",
-        author="test_watch_bot",
+        author="u/test_watch_bot",
         body="This is a test notification verifying that your Discord webhook is working properly.",
         subreddit="watchexchange"
     )
 
 
-def test_historical(limit=50):
-    """Scans historical posts without time filters to test parser accuracy."""
-    print(f"--- Scanning last {limit} posts per subreddit for Tudor BB36 matches ---")
+def test_historical():
+    print("--- Scanning latest posts via RSS for Tudor BB36 matches ---")
     total_matches = 0
 
     for sub in SUBREDDITS:
         print(f"\nChecking r/{sub}...")
-        url = f"https://www.reddit.com/r/{sub}/new.json?limit={limit}"
+        url = f"https://www.reddit.com/r/{sub}/new.rss"
         try:
-            res = requests.get(url, headers=HEADERS, timeout=10)
-            if res.status_code != 200:
-                print(f"Failed fetching r/{sub}: HTTP {res.status_code}")
+            feed = feedparser.parse(url, request_headers=HEADERS)
+            if feed.bozo and not feed.entries:
+                print(f"Failed fetching r/{sub}: Status {getattr(feed, 'status', 'Unknown')}")
                 continue
 
-            posts = res.json().get("data", {}).get("children", [])
             sub_matches = 0
-
-            for p in posts:
-                post = p.get("data", {})
-                title = post.get("title", "")
-                body = post.get("selftext", "")
-                post_url = f"https://reddit.com{post.get('permalink', '')}"
-                author = post.get("author", "")
+            for entry in feed.entries:
+                title = getattr(entry, "title", "")
+                body = getattr(entry, "summary", "")
+                post_url = getattr(entry, "link", "")
+                author = getattr(entry, "author", "unknown")
 
                 if is_target_deal(title, body):
                     sub_matches += 1
                     total_matches += 1
                     print(f"  [MATCH] {title}")
-                    print(f"          Author: u/{author}")
+                    print(f"          Author: {author}")
                     print(f"          URL: {post_url}\n")
 
             if sub_matches == 0:
-                print(f"  No Tudor BB36 matches found in recent {len(posts)} posts.")
+                print(f"  No Tudor BB36 matches found in {len(feed.entries)} entries.")
 
         except Exception as e:
             print(f"Error checking r/{sub}: {e}")
@@ -117,7 +114,7 @@ def main():
         return
 
     if "--test-history" in sys.argv:
-        test_historical(limit=50)
+        test_historical()
         return
 
     if not DISCORD_WEBHOOK_URL:
@@ -128,23 +125,25 @@ def main():
     window_seconds = 900  # 15 minutes
 
     for sub in SUBREDDITS:
-        url = f"https://www.reddit.com/r/{sub}/new.json?limit=25"
+        url = f"https://www.reddit.com/r/{sub}/new.rss"
         try:
-            res = requests.get(url, headers=HEADERS, timeout=10)
-            if res.status_code != 200:
-                print(f"Failed fetching r/{sub}: HTTP {res.status_code}")
+            feed = feedparser.parse(url, request_headers=HEADERS)
+            if feed.bozo and not feed.entries:
+                print(f"Failed fetching r/{sub}: Status {getattr(feed, 'status', 'Unknown')}")
                 continue
 
-            posts = res.json().get("data", {}).get("children", [])
-            for p in posts:
-                post = p.get("data", {})
-                created_utc = post.get("created_utc", 0)
+            for entry in feed.entries:
+                # published_parsed is struct_time in UTC
+                if hasattr(entry, "published_parsed") and entry.published_parsed:
+                    published_utc = time.mktime(entry.published_parsed)
+                else:
+                    published_utc = current_time
 
-                if (current_time - created_utc) <= window_seconds:
-                    title = post.get("title", "")
-                    body = post.get("selftext", "")
-                    post_url = f"https://reddit.com{post.get('permalink', '')}"
-                    author = post.get("author", "")
+                if (current_time - published_utc) <= window_seconds:
+                    title = getattr(entry, "title", "")
+                    body = getattr(entry, "summary", "")
+                    post_url = getattr(entry, "link", "")
+                    author = getattr(entry, "author", "unknown")
 
                     if is_target_deal(title, body):
                         print(f"Match found in r/{sub}: {title}")
