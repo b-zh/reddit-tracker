@@ -1,3 +1,13 @@
+"""
+Reddit Watch Deal Tracker
+Target: Tudor BB36 (79500 / m79500)
+
+NOTE ON MAINTENANCE:
+- Triggered every 10 min by cron-job.org via GitHub Actions workflow_dispatch API.
+- The GitHub Personal Access Token (PAT) configured in cron-job.org expires every 90 days (Renewal due: late November 2026).
+- When renewing, update the 'Authorization: Bearer <TOKEN>' header in cron-job.org.
+"""
+
 import os
 import sys
 import time
